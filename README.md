@@ -54,7 +54,7 @@ kubectl apply -f vks.yaml
 ### 5. Connect to 'tigera-vks' VKS cluster
 ```shell
 # Connect to the VKS cluster
-vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_CONTEXT --workload-cluster-name=$CLUSTER_NAME
+vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_NAMESPACE_NAME --workload-cluster-name=$CLUSTER_NAME
 vcf context use vks:$CLUSTER_NAME
 ```
 
@@ -89,6 +89,7 @@ kubectl patch serviceaccount default \
 kubectl delete namespace $CLUSTER_NAMESPACE_NAME
 
 # Delete VKS cluster as defined in vks.yaml
+kubectl context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
 kubectl delete -f vks.yaml
 ```
 
