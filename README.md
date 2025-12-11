@@ -38,41 +38,34 @@ rm ~/.kube/config
 rm -rf ~/.config/vcf/
 ```
 
-### 3. Login to supervisor
-```shell
-# Login and get contexts
-kubectl vsphere login --server=$SUPERVISOR_IP  --insecure-skip-tls-verify=true -u $SUPERVISOR_USERNAME
-kubectl config get-contexts
-```
-
-### 4. Create context on supervisor
+### 3. Create context on supervisor
 ```shell
 # Create a context named 'tigera-ctx'
 vcf context create $SUPERVISOR_CONTEXT --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME 
 vcf context use $SUPERVISOR_CONTEXT
 ```
 
-### 5. Create 'tigera-vks' VKS cluster
+### 4. Create 'tigera-vks' VKS cluster
 ```shell
 # Create a VKS cluster as defined in vks.yaml
 kubectl apply -f vks.yaml
 ```
 
-### 6. Connect to 'tigera-vks' VKS cluster
+### 5. Connect to 'tigera-vks' VKS cluster
 ```shell
 # Connect to the VKS cluster
 vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_CONTEXT --workload-cluster-name=$CLUSTER_NAME
 vcf context use vks:$CLUSTER_NAME
 ```
 
-### 7. Create 'tigera-ns' namespace
+### 6. Create 'tigera-ns' namespace
 ```shell
 # Create a namespace on the VKS cluster
 kubectl create namespace $NAMESPACE_NAME
 kubectl config set-context --current --namespace=$NAMESPACE_NAME
 ```
 
-### 8. (Optional) Create Secret with Docker.io Credentials
+### 7. (Optional) Create Secret with Docker.io Credentials
 May be required if the deployment hits errors about the site hitting image pull limits.
 ```shell
 # Create secret with Docker login credentials in Kubernetes
