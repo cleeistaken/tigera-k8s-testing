@@ -26,7 +26,7 @@ spec:
           variables:
             overrides:
             - name: vmClass
-              value: vks-vm-class
+              value: vks-8-32-class
             - name: node
               value:
                 labels:
@@ -40,7 +40,7 @@ spec:
           variables:
             overrides:
             - name: vmClass
-              value: vks-vm-class
+              value: vks-8-32-class
             - name: node
               value:
                 labels:
@@ -54,7 +54,7 @@ spec:
           variables:
             overrides:
             - name: vmClass
-              value: vks-vm-class
+              value: vks-8-32-class
             - name: node
               value:
                 labels:
@@ -68,7 +68,7 @@ spec:
           variables:
             overrides:
             - name: vmClass
-              value: vks-vm-class
+              value: vks-8-32-class
             - name: node
               value:
                 labels:
