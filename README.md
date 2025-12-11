@@ -89,17 +89,6 @@ kubectl patch serviceaccount default \
 ```
 
 
-
-### 12. Expose ports
-```shell
-# Expose Control Center
-kubectl expose service controlcenter-0-internal  --type=LoadBalancer --name=controlcenter-0-external
-
-# Get the control center external IP
-kubectl get svc controlcenter-0-external
-```
-
-
 ## Cleanup Procedure
 
 ```shell
