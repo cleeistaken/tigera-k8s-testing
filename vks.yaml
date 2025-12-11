@@ -10,6 +10,8 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
+    cni:
+      name: calico
   topology:
     class: builtin-generic-v3.5.0
     version: v1.34.1---vmware.1-vkr.4
