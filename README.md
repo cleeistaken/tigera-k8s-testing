@@ -13,7 +13,7 @@ git clone https://github.com/cleeistaken/tigera-k8s-testing.git
 ### Required vSphere Steps
 1. In WCP, create a name space names '**tigera**'
 2. Add '**vsan-esa-default-policy-raid5**' storage policy to '**tigera**' namespace
-3. Create and add a VM class named '**vks-vm-class**' and add it to '**tigera**' namespace
+3. Create and add a VM class named '**vks-8-32-class**' and add it to '**tigera**' namespace
    * Define the CPU and RAM. This class will be used for the VKS worker nodes
 4. Add '**best-effort-medium**' VM class to '**tigera**' namespace
 
@@ -42,7 +42,7 @@ rm -rf ~/.config/vcf/
 ```shell
 # Create a context named 'tigera-ctx'
 vcf context create $SUPERVISOR_CONTEXT --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME 
-vcf context use $SUPERVISOR_CONTEXT
+vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
 ```
 
 ### 4. Create 'tigera-vks' VKS cluster
