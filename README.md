@@ -47,7 +47,7 @@ kubectl config get-contexts
 
 ### 4. Create context on supervisor
 ```shell
-# Create a context named 'cp'
+# Create a context named 'tigera-ctx'
 vcf context create $SUPERVISOR_CONTEXT --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME 
 vcf context use $SUPERVISOR_CONTEXT
 ```
