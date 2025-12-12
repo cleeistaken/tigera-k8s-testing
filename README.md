@@ -48,7 +48,11 @@ vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
 ### 4. Create 'tigera-vks' VKS cluster
 ```shell
 # Create a VKS cluster as defined in vks.yaml
-kubectl apply -f vks.yaml
+kubectl apply -f vks.y
+
+# Test commands
+kubectl get cluster --watch
+# wait until output shows "Available: True" 
 ```
 
 ### 5. Connect to 'tigera-vks' VKS cluster
@@ -56,13 +60,21 @@ kubectl apply -f vks.yaml
 # Connect to the VKS cluster
 vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_NAMESPACE_NAME --workload-cluster-name=$CLUSTER_NAME
 vcf context use vks:$CLUSTER_NAME
+
+# Test Commands
+kubectl get nodes
+# should show the VKS worker nodes
 ```
 
 ### 6. Create 'tigera-ns' namespace
 ```shell
 # Create a namespace on the VKS cluster
-kubectl create namespace $NAMESPACE_NAME
-kubectl config set-context --current --namespace=$NAMESPACE_NAME
+kubectl create namespace $CLUSTER_NAMESPACE_NAME
+kubectl config set-context --current --namespace=$CLUSTER_NAMESPACE_NAME
+
+# Test commands
+kubectl get all
+# should show no resources
 ```
 
 ### 7. (Optional) Create Secret with Docker.io Credentials
