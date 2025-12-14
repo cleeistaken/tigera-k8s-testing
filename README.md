@@ -228,7 +228,14 @@ kubectl get svc
 # Expose a service
 kubectl expose service <service_name>  --type=LoadBalancer --name=<service_name>-external
 
-# Get the control center external IP
-kubectl get svc <service_name>-external 
+# Get the external IP
+kubectl get svc <service_name>-external
+
+# Get TKR releases
+kubectl get tkr -l '!kubernetes.vmware.com/kubernetesrelease'
+
+# Get TKE releaase specs
+# e.g. kubectl get tkr 'v1.34.1---vmware.1-vkr.4' -o yaml
+kubectl get tkr TKR_NAME -o yaml  
 ```
 
