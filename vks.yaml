@@ -1,3 +1,28 @@
+---
+apiVersion: cni.tanzu.vmware.com/v1alpha1
+kind: CalicoConfig
+metadata:
+  name: tigera-vks
+spec:
+  calico:
+    config:
+      vethMTU: 0
+---
+apiVersion: run.tanzu.vmware.com/v1alpha3
+kind: ClusterBootstrap
+metadata:
+  annotations:
+    tkg.tanzu.vmware.com/add-missing-fields-from-tkr: v1.34.1---vmware.1-vkr.4
+  name: tigera-vks
+spec:
+  cni:
+    refName: calico.tanzu.vmware.com.3.30.2+vmware.3-fips-tkg.1
+    valuesFrom:
+      providerRef:
+        apiGroup: cni.tanzu.vmware.com
+        kind: CalicoConfig
+        name: tigera-vks
+---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -10,8 +35,6 @@ spec:
     pods:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
-    cni:
-      name: calico
   topology:
     class: builtin-generic-v3.5.0
     version: v1.34.1---vmware.1-vkr.4

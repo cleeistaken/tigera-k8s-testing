@@ -24,8 +24,8 @@ git clone https://github.com/cleeistaken/tigera-k8s-testing.git
 ### 1. Set variables
 ```shell
 # Update with correct values!
-SUPERVISOR_IP="10.139.8.6"
-SUPERVISOR_USERNAME="user@showcase.tmm.broadcom.lab"
+SUPERVISOR_IP="10.138.216.198"
+SUPERVISOR_USERNAME="<username>@showcase.tmm.broadcom.lab"
 SUPERVISOR_NAMESPACE_NAME="tigera"
 SUPERVISOR_CONTEXT="tigera-ctx"
 CLUSTER_NAME="tigera-vks"
@@ -42,39 +42,140 @@ rm -rf ~/.config/vcf/
 ```shell
 # Create a context named 'tigera-ctx'
 vcf context create $SUPERVISOR_CONTEXT --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME 
+
+# Expected output:
+# [i] Some initialization of the CLI is required.
+# [i] Let's set things up for you.  This will just take a few seconds.
+# 
+# [i] 
+# [i] Initialization done!
+# [i] ==
+# [i] Auth type vSphere SSO detected. Proceeding for authentication...
+# Provide Password: 
+# 
+# Logged in successfully.
+#
+# You have access to the following contexts:
+#    tigera-ctx
+#    tigera-ctx:tigera
+#
+# If the namespace context you wish to use is not in this list, you may need to
+# refresh the context again, or contact your cluster administrator.
+#
+# To change context, use `vcf context use <context_name>`
+# [ok] successfully created context: tigera-ctx
+# [ok] successfully created context: tigera-ctx:tigera
+
+# Set context
 vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
+
+# Expected output
+# [ok] Token is still active. Skipped the token refresh for context "tigera-ctx:tigera"
+# [i] Successfully activated context 'tigera-ctx:tigera' (Type: kubernetes) 
+# [i] Fetching recommended plugins for active context 'tigera-ctx:tigera'...
+# [i] No image repository override information was found
+# [ok] All recommended plugins are already installed and up-to-date. 
 ```
 
 ### 4. Create 'tigera-vks' VKS cluster
 ```shell
 # Create a VKS cluster as defined in vks.yaml
-kubectl apply -f vks.y
+kubectl apply -f vks.yaml
+
+# Expected output:
+# calicoconfig.cni.tanzu.vmware.com/tigera-vks created
+# clusterbootstrap.run.tanzu.vmware.com/tigera-vks created
+# Warning: cluster.x-k8s.io/v1beta1 Cluster is deprecated; use cluster.x-k8s.io/v1beta2 Cluster
+# cluster.cluster.x-k8s.io/tigera-vks created
+# 
+# or:
+# calicoconfig.cni.tanzu.vmware.com/tigera-vks unchanged
+# clusterbootstrap.run.tanzu.vmware.com/tigera-vks unchanged
+# Warning: cluster.x-k8s.io/v1beta1 Cluster is deprecated; use cluster.x-k8s.io/v1beta2 Cluster
+# cluster.cluster.x-k8s.io/tigera-vks created
 
 # Test commands
 kubectl get cluster --watch
-# wait until output shows "Available: True" 
+
+# Expected output:
+# NAME         CLUSTERCLASS             AVAILABLE   CP DESIRED   CP AVAILABLE   CP UP-TO-DATE   W DESIRED   W AVAILABLE   W UP-TO-DATE   PHASE         AGE   VERSION
+# tigera-vks   builtin-generic-v3.5.0   False       1            0              1               4           0             4              Provisioned   67s   v1.34.1+vmware.1
+# [...]
+# tigera-vks   builtin-generic-v3.5.0   False       1            1              1               4           3             4              Provisioned   3m18s   v1.34.1+vmware.1
+# tigera-vks   builtin-generic-v3.5.0   True        1            1              1               4           3             4              Provisioned   3m18s   v1.34.1+vmware.1
+#
+# Note: wait until output shows "Available: True" 
 ```
 
 ### 5. Connect to 'tigera-vks' VKS cluster
 ```shell
 # Connect to the VKS cluster
 vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_NAMESPACE_NAME --workload-cluster-name=$CLUSTER_NAME
+
+# Expected output:
+# [i] Logging in to Kubernetes cluster (tigera-vks) (tigera)
+# [i] Successfully logged in to Kubernetes cluster 10.138.216.200
+#
+# You have access to the following contexts:
+#    vks
+#    vks:tigera-vks
+#
+# If the namespace context you wish to use is not in this list, you may need to
+# refresh the context again, or contact your cluster administrator.
+# 
+# To change context, use `vcf context use <context_name>`
+# [ok] successfully created context: vks
+# [ok] successfully created context: vks:tigera-vks
+
+# Use context
 vcf context use vks:$CLUSTER_NAME
 
+# Expected output: 
+# [ok] Token is still active. Skipped the token refresh for context "vks:tigera-vks"
+# [i] Successfully activated context 'vks:tigera-vks' (Type: kubernetes) 
+# [i] Fetching recommended plugins for active context
+
 # Test Commands
-kubectl get nodes
-# should show the VKS worker nodes
+
+# Get Nodes
+kubectl get nodes -o wide
+
+# Expected output: 
+# NAME                                       STATUS   ROLES           AGE   VERSION            INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION     CONTAINER-RUNTIME
+# tigera-vks-node-pool-1-8jzgf-bhrz2-vmnw7   Ready    <none>          36m   v1.34.1+vmware.1   172.26.0.5    <none>        Ubuntu 24.04.3 LTS   6.8.0-86-generic   containerd://2.1.4+vmware.3-fips
+# tigera-vks-node-pool-2-zd45h-59jlx-mrr64   Ready    <none>          36m   v1.34.1+vmware.1   172.26.0.6    <none>        Ubuntu 24.04.3 LTS   6.8.0-86-generic   containerd://2.1.4+vmware.3-fips
+# tigera-vks-node-pool-3-v8j28-bjm5t-w2h2q   Ready    <none>          36m   v1.34.1+vmware.1   172.26.0.4    <none>        Ubuntu 24.04.3 LTS   6.8.0-86-generic   containerd://2.1.4+vmware.3-fips
+# tigera-vks-node-pool-4-btqp5-z4ts9-sx9bd   Ready    <none>          36m   v1.34.1+vmware.1   172.26.0.7    <none>        Ubuntu 24.04.3 LTS   6.8.0-86-generic   containerd://2.1.4+vmware.3-fips
+# tigera-vks-trdx9-gmtbm                     Ready    control-plane   38m   v1.34.1+vmware.1   172.26.0.3    <none>        Ubuntu 24.04.3 LTS   6.8.0-86-generic   containerd://2.1.4+vmware.3-fips
+
+# Get CNI
+kubectl get daemonsets -n kube-system
+
+# Expected output: 
+# NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+# calico-node   5         5         5       5            5           kubernetes.io/os=linux   38m
+# kube-proxy    5         5         5       5            5           kubernetes.io/os=linux   38m
 ```
 
 ### 6. Create 'tigera-ns' namespace
 ```shell
 # Create a namespace on the VKS cluster
 kubectl create namespace $CLUSTER_NAMESPACE_NAME
+
+# Expected output:
+# namespace/tigera-ns created
+#
+# or:
+# Error from server (AlreadyExists): namespaces "tigera-ns" already exists
+
+# Set context
 kubectl config set-context --current --namespace=$CLUSTER_NAMESPACE_NAME
+
+# Expected output:
+# Context "vks:tigera-vks" modified.
 
 # Test commands
 kubectl get all
-# should show no resources
 ```
 
 ### 7. (Optional) Create Secret with Docker.io Credentials
@@ -100,8 +201,10 @@ kubectl patch serviceaccount default \
 #Delete the namespace
 kubectl delete namespace $CLUSTER_NAMESPACE_NAME
 
-# Delete VKS cluster as defined in vks.yaml
+# Switch to supervisor context 
 kubectl context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
+
+# Delete VKS cluster as defined in vks.yaml
 kubectl delete -f vks.yaml
 ```
 
