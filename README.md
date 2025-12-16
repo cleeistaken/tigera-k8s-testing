@@ -17,7 +17,7 @@ git clone https://github.com/cleeistaken/tigera-k8s-testing.git
    * Define the CPU and RAM. This class will be used for the VKS worker nodes
 4. Add '**best-effort-medium**' VM class to '**tigera**' namespace
 
-
+**Note**: These steps required access to vCenter and typically done by the infrastructure administrator.
 
 ## Deployment Procedure
 
