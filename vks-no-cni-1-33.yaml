@@ -4,7 +4,7 @@ kind: ClusterBootstrap
 metadata:
   annotations:
     tkg.tanzu.vmware.com/add-missing-fields-from-tkr: v1.33.3---vmware.1-fips-vkr.1
-  name: tigera-vks-no-cni
+  name: tigera-vks-no-cni-1-33
   namespace: tigera
 spec:
   # Omission of the cni section here prevents the bootstrap controller
@@ -17,7 +17,7 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: tigera-vks-no-cni
+  name: tigera-vks-no-cni-1-33
   namespace: tigera
 spec:
   clusterNetwork:
