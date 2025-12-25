@@ -1,0 +1,120 @@
+---
+apiVersion: cni.tanzu.vmware.com/v1alpha1
+kind: CalicoConfig
+metadata:
+  name: tigera-calico-vks
+spec:
+  calico:
+    config:
+      vethMTU: 0
+---
+apiVersion: run.tanzu.vmware.com/v1alpha3
+kind: ClusterBootstrap
+metadata:
+  annotations:
+    tkg.tanzu.vmware.com/add-missing-fields-from-tkr: v1.33.3---vmware.1-fips-vkr.1
+  name: tigera-calico-vks
+spec:
+  cni:
+    refName: calico.tanzu.vmware.com.3.30.0+vmware.2-fips-tkg.1
+    valuesFrom:
+      providerRef:
+        apiGroup: cni.tanzu.vmware.com
+        kind: CalicoConfig
+        name: tigera-calico-vks
+---
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  name: tigera-calico-vks
+  namespace: tigera-vmware
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+  topology:
+    classRef:
+      name: builtin-generic-v3.5.0-tigera
+      namespace: tigera-vmware
+    version: v1.33.3+vmware.1-fips
+    controlPlane:
+      replicas: 1
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+    workers:
+      machineDeployments:
+        - class: node-pool
+          name: node-pool-1
+          replicas: 1
+          variables:
+            overrides:
+            - name: vmClass
+              value: vks-8-32-class
+            - name: node
+              value:
+                labels:
+                  topology.kubernetes.io/region: rack1
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+        - class: node-pool
+          name: node-pool-2
+          replicas: 1
+          variables:
+            overrides:
+            - name: vmClass
+              value: vks-8-32-class
+            - name: node
+              value:
+                labels:
+                  topology.kubernetes.io/region: rack2
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+        - class: node-pool
+          name: node-pool-3
+          replicas: 1
+          variables:
+            overrides:
+            - name: vmClass
+              value: vks-8-32-class
+            - name: node
+              value:
+                labels:
+                  topology.kubernetes.io/region: rack3
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+        - class: node-pool
+          name: node-pool-4
+          replicas: 1
+          variables:
+            overrides:
+            - name: vmClass
+              value: vks-8-32-class
+            - name: node
+              value:
+                labels:
+                  topology.kubernetes.io/region: rack4
+          metadata:
+            annotations:
+              run.tanzu.vmware.com/resolve-os-image: os-name=ubuntu,os-version=24.04
+    variables:
+      - name: vmClass
+        value: best-effort-medium
+      - name: storageClass
+        value: vsan-esa-default-policy-raid5
+      - name: vsphereOptions
+        value:
+          persistentVolumes:
+            defaultStorageClass: vsan-esa-default-policy-raid5
+      - name: kubernetes
+        value:
+          security:
+            podSecurityStandard:
+              enforce: privileged
+

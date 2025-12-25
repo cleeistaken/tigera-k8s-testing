@@ -1,0 +1,1158 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  annotations:
+    kapp.k14s.io/identity: v1;vmware-system-vks-public/cluster.x-k8s.io/ClusterClass/builtin-generic-v3.5.0;cluster.x-k8s.io/v1beta2
+    kapp.k14s.io/original: '{"apiVersion":"cluster.x-k8s.io/v1beta2","kind":"ClusterClass","metadata":{"labels":{"kapp.k14s.io/app":"1765731888277715130","kapp.k14s.io/association":"v1.ca3516343eb2db9cee33c42553bbc170","kubernetes.vmware.com/managed-by":"vks","kubernetes.vmware.com/min-version-supported":"v1.31","kubernetes.vmware.com/type":"generic","kubernetes.vmware.com/version":"v3.5.0"},"name":"builtin-generic-v3.5.0","namespace":"vmware-system-vks-public"},"spec":{"controlPlane":{"deletion":{"nodeDeletionTimeoutSeconds":0},"healthCheck":{"checks":{"nodeStartupTimeoutSeconds":3600,"unhealthyNodeConditions":[{"status":"Unknown","timeoutSeconds":300,"type":"Ready"},{"status":"False","timeoutSeconds":720,"type":"Ready"}]},"remediation":{"triggerIf":{"unhealthyLessThanOrEqualTo":"100%"}}},"machineInfrastructure":{"templateRef":{"apiVersion":"vmware.infrastructure.cluster.x-k8s.io/v1beta1","kind":"VSphereMachineTemplate","name":"tkc-control-plane-v3.5.0"}},"metadata":{"annotations":{"run.tanzu.vmware.com/resolve-os-image":"os-name=photon"}},"templateRef":{"apiVersion":"controlplane.cluster.x-k8s.io/v1beta2","kind":"KubeadmControlPlaneTemplate","name":"tkc-control-plane-v3.5.0"}},"infrastructure":{"templateRef":{"apiVersion":"vmware.infrastructure.cluster.x-k8s.io/v1beta1","kind":"VSphereClusterTemplate","name":"tkc-infrastructure-v3.5.0"}},"patches":[{"external":{"discoverVariablesExtension":"discover-variables.runtime-extension","generatePatchesExtension":"generate-patches.runtime-extension","settings":{"version":"v3.5.0"}},"name":"default"}],"workers":{"machineDeployments":[{"bootstrap":{"templateRef":{"apiVersion":"bootstrap.cluster.x-k8s.io/v1beta2","kind":"KubeadmConfigTemplate","name":"tkc-md-v3.5.0"}},"class":"node-pool","deletion":{"nodeDeletionTimeoutSeconds":0},"healthCheck":{"checks":{"nodeStartupTimeoutSeconds":3600,"unhealthyNodeConditions":[{"status":"Unknown","timeoutSeconds":300,"type":"Ready"},{"status":"False","timeoutSeconds":720,"type":"Ready"}]},"remediation":{"triggerIf":{"unhealthyLessThanOrEqualTo":"100%"}}},"infrastructure":{"templateRef":{"apiVersion":"vmware.infrastructure.cluster.x-k8s.io/v1beta1","kind":"VSphereMachineTemplate","name":"tkc-md-v3.5.0"}},"metadata":{"annotations":{"run.tanzu.vmware.com/resolve-os-image":"os-name=photon"}}}]}}}'
+    kapp.k14s.io/original-diff-md5: c6e94dc94aed3401b5d0f26ed6c0bff3
+      # CLEE creationTimestamp: "2025-12-14T17:28:30Z"
+      # CLEE generation: 1
+  labels:
+    kapp.k14s.io/app: "1765731888277715130"
+    kapp.k14s.io/association: v1.ca3516343eb2db9cee33c42553bbc170
+      # CLEE kubernetes.vmware.com/managed-by: vks
+    kubernetes.vmware.com/min-version-supported: v1.31
+    kubernetes.vmware.com/type: generic
+    kubernetes.vmware.com/version: v3.5.0
+      # name: builtin-generic-v3.5.0
+  name: builtin-generic-v3.5.0-tigera
+      # namespace: vmware-system-vks-public
+  namespace: tigera-vmware
+    # CLEE resourceVersion: "44390"
+    # CLEE uid: 6b915e8a-459f-40cc-8ea4-669177862334
+spec:
+  controlPlane:
+    deletion:
+      nodeDeletionTimeoutSeconds: 0
+    healthCheck:
+      checks:
+        nodeStartupTimeoutSeconds: 3600
+        unhealthyNodeConditions:
+        - status: Unknown
+          timeoutSeconds: 300
+          type: Ready
+        - status: "False"
+          timeoutSeconds: 720
+          type: Ready
+      remediation:
+        triggerIf:
+          unhealthyLessThanOrEqualTo: 100%
+    machineInfrastructure:
+      templateRef:
+        apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+        kind: VSphereMachineTemplate
+        name: tkc-control-plane-v3.5.0
+    metadata:
+      annotations:
+        run.tanzu.vmware.com/resolve-os-image: os-name=photon
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+      kind: KubeadmControlPlaneTemplate
+      name: tkc-control-plane-v3.5.0
+  infrastructure:
+    templateRef:
+      apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+      kind: VSphereClusterTemplate
+      name: tkc-infrastructure-v3.5.0
+  patches:
+  - external:
+      discoverVariablesExtension: discover-variables.runtime-extension
+      generatePatchesExtension: generate-patches.runtime-extension
+      settings:
+        version: v3.5.0
+    name: default
+  - name: firewall
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/postKubeadmCommands
+        value:
+        - nft add rule filter INPUT tcp dport { 179, 5473 } accept || true
+        - iptables -I INPUT 1 -p tcp --dport 179 -j ACCEPT || true
+        - iptables -I INPUT 1 -p tcp --dport 5473 -j ACCEPT || true
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - node-pool
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/postKubeadmCommands
+        value:
+        - nft add rule filter INPUT tcp dport { 179, 5473 } accept || true
+        - iptables -I INPUT 1 -p tcp --dport 179 -j ACCEPT || true
+        - iptables -I INPUT 1 -p tcp --dport 5473 -j ACCEPT || true
+  workers:
+    machineDeployments:
+    - bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: tkc-md-v3.5.0
+      class: node-pool
+      deletion:
+        nodeDeletionTimeoutSeconds: 0
+      healthCheck:
+        checks:
+          nodeStartupTimeoutSeconds: 3600
+          unhealthyNodeConditions:
+          - status: Unknown
+            timeoutSeconds: 300
+            type: Ready
+          - status: "False"
+            timeoutSeconds: 720
+            type: Ready
+        remediation:
+          triggerIf:
+            unhealthyLessThanOrEqualTo: 100%
+      infrastructure:
+        templateRef:
+          apiVersion: vmware.infrastructure.cluster.x-k8s.io/v1beta1
+          kind: VSphereMachineTemplate
+          name: tkc-md-v3.5.0
+      metadata:
+        annotations:
+          run.tanzu.vmware.com/resolve-os-image: os-name=photon
+status:
+  conditions:
+  - lastTransitionTime: "2025-12-14T17:28:31Z"
+    message: ""
+    observedGeneration: 1
+    reason: RefVersionsUpToDate
+    status: "True"
+    type: RefVersionsUpToDate
+  - lastTransitionTime: "2025-12-14T17:28:36Z"
+    message: ""
+    observedGeneration: 1
+    reason: VariablesReady
+    status: "True"
+    type: VariablesReady
+  - lastTransitionTime: "2025-12-14T17:28:30Z"
+    message: ""
+    observedGeneration: 1
+    reason: NotPaused
+    status: "False"
+    type: Paused
+  deprecated:
+    v1beta1:
+      conditions:
+      - lastTransitionTime: "2025-12-14T17:28:31Z"
+        status: "True"
+        type: RefVersionsUpToDate
+      - lastTransitionTime: "2025-12-14T17:28:36Z"
+        status: "True"
+        type: VariablesReconciled
+  observedGeneration: 1
+  variables:
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Deprecated: This variable is deprecated. Use kubernetes.endpointFQDNs instead.
+            This variable will be removed in a future release.
+          items:
+            type: string
+          type: array
+    definitionsConflict: false
+    name: kubeAPIServerFQDNs
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          default: {}
+          description: |-
+            Kubernetes configures cluster-wide settings for the Kubernetes cluster, typically applied to the control plane.
+            Supported scopes: cluster
+          properties:
+            apiServerConfiguration:
+              description: |-
+                APIServerConfiguration contains configuration options for the Kubernetes API server.
+                These settings control API server behavior including request limits, audit logging,
+                admission control, authentication, and event retention.
+              properties:
+                logs:
+                  description: |-
+                    Logging configures the logging options for the API server, including
+                    log levels, formats, and output destinations. Refer to the Kubernetes
+                    component-base logs options for more information.
+                  properties:
+                    flushFrequency:
+                      description: |-
+                        FlushFrequency is the maximum time between log flushes.
+                        If specified as a string, it's parsed as a duration (e.g., "1s").
+                        If specified as an integer, it's the maximum number of nanoseconds.
+                        Ignored if the selected logging backend writes log messages without buffering.
+                        Corresponds to --log-flush-frequency flag.
+                        Default: 5s
+                      type: string
+                    format:
+                      description: |-
+                        Format specifies the structure of log messages.
+                        Supported values are "text" (default) and "json".
+                        Corresponds to --logging-format flag.
+                        Default: "text"
+                      enum:
+                      - text
+                      - json
+                      type: string
+                    verbosity:
+                      description: |-
+                        Verbosity is the threshold that determines which log messages are logged.
+                        Default is zero which logs only the most important messages.
+                        Higher values enable additional messages. Error messages are always logged.
+                        Corresponds to -v or --v flag.
+                        Default: 0
+                      format: int32
+                      type: integer
+                  type: object
+                maxMutatingRequestsInFlight:
+                  description: |-
+                    MaxMutatingRequestsInFlight is the maximum number of parallel mutating requests.
+                    Every further request has to wait. This field and MaxRequestsInFlight are summed
+                    to determine the server's total concurrency limit (which must be positive).
+                    Corresponds to the --max-mutating-requests-inflight flag.
+                    Default: 200
+                  format: int32
+                  maximum: 5000
+                  minimum: 0
+                  type: integer
+                maxRequestsInFlight:
+                  description: |-
+                    MaxRequestsInFlight is the maximum number of parallel non-long-running requests.
+                    Every further request has to wait. This field and MaxMutatingRequestsInFlight are
+                    summed to determine the server's total concurrency limit (which must be positive).
+                    Corresponds to the --max-requests-inflight flag.
+                    Default: 400
+                  format: int32
+                  maximum: 10000
+                  minimum: 0
+                  type: integer
+                profiling:
+                  description: |-
+                    Profiling enables profiling via web interface host:port/debug/pprof/
+                    Default: false
+                  type: boolean
+                requestTimeout:
+                  description: |-
+                    RequestTimeout is the duration after which all non-long-running requests will be
+                    timed out.
+                    Corresponds to the --request-timeout flag.
+                    Default: 1m0s
+                  format: duration
+                  type: string
+              type: object
+              x-kubernetes-validations:
+              - message: sum of maxRequestsInFlight and maxMutatingRequestsInFlight
+                  must be positive
+                rule: '!has(self.maxRequestsInFlight) || !has(self.maxMutatingRequestsInFlight)
+                  || (self.maxRequestsInFlight + self.maxMutatingRequestsInFlight)
+                  > 0'
+            certificateRotation:
+              default: {}
+              description: |-
+                CertificateRotation configures options for the automatic rotation of control plane certificates
+                which have a default validity of 12 months. Note that certificates are always rotated during Kubernetes upgrades.
+              properties:
+                enabled:
+                  default: true
+                  description: Enabled controls enablement of auto certificate rotation
+                  type: boolean
+                renewalDaysBeforeExpiry:
+                  default: 90
+                  description: |-
+                    RenewalDaysBeforeExpiry states the number of days before certificate expiry to
+                    initiate the renewal of certificates.
+                  format: int32
+                  minimum: 7
+                  type: integer
+              type: object
+            endpointFQDNs:
+              description: |-
+                EndpointFQDNs Configure FQDN aliases for the control plane endpoint
+                for example to allow users to connect to the cluster using https://k8s.prod.example.com/
+              items:
+                type: string
+              type: array
+            etcdConfiguration:
+              description: |-
+                EtcdConfiguration contains configuration options for the etcd database used by Kubernetes.
+                These settings control etcd behavior including database size limits and performance tuning.
+                Supported scopes: cluster, controlPlane
+              properties:
+                maximumDBSizeGiB:
+                  description: |-
+                    MaximumDBSizeGiB specifies the maximum size of the etcd database in GiB.
+                    This value is used to set --quota-backend-bytes for etcd. To account for
+                    compaction, defragmentation, and temporary usage spikes, the volume is
+                    provisioned with 25% additional capacity and mounted at /var/lib/etcd path.
+                  format: int32
+                  type: integer
+                  x-kubernetes-validations:
+                  - message: maximumDBSizeGiB must be between 2 and 8 GiB
+                    rule: self >= 2 && self <= 8
+                  - message: maximumDBSizeGiB cannot be decreased (must be >= previous
+                      value)
+                    rule: self >= oldSelf
+              required:
+              - maximumDBSizeGiB
+              type: object
+            kubeletConfiguration:
+              description: |-
+                KubeletConfiguration contains configuration options for the kubelet running on worker nodes.
+                These settings control various aspects of kubelet behavior including resource limits,
+                image management, logging, and security policies.
+                Supported scopes: cluster, controlPlane, workers
+              properties:
+                allowedUnsafeSysctls:
+                  description: |-
+                    AllowedUnsafeSysctls is a comma separated allowlist of unsafe sysctls or sysctl patterns (ending in `*`).
+                    All safe sysctls are enabled by default. A safe sysctl must be properly isolated between pods on the same node.
+                    This means that setting a safe sysctl for one pod:
+                      - must not have any influence on any other pod on the node
+                      - must not allow to harm the node's health
+                      - must not allow to gain CPU or memory resources outside of the resource limits of a pod.
+
+                    Unsafe sysctls fail to meet one or more of these criteria; the use of unsafe sysctls is at-your-own-risk and can lead to severe problems like wrong behavior of
+                    containers, resource shortage, or complete breakage of a node. Only modify sysctl parameters after you understand their effects, to avoid destabilizing your operating
+                    system. With this in mind, you can allow certain unsafe sysctls for very special situations such as high-performance or real-time application tuning.
+
+                    It is good practice to consider node pools with special sysctl settings as tainted within a cluster, and only schedule pods onto them which need those sysctl settings.
+
+                    Unsafe sysctl groups are `kernel.shm*`, `kernel.msg*`, `kernel.sem`, `fs.mqueue.*`, and `net.*`.
+                    These sysctls are namespaced but not allowed by default.
+                    For example: "`kernel.msg*,net.ipv4.route.min_pmtu`"
+                    Default: []
+                  items:
+                    type: string
+                  type: array
+                containerLogMaxFiles:
+                  description: |-
+                    ContainerLogMaxFiles is the maximum number of container log files that can be present for a container.
+                    Default: 5
+                  format: int32
+                  maximum: 100
+                  minimum: 1
+                  type: integer
+                containerLogMaxSizeMiB:
+                  description: |-
+                    ContainerLogMaxSize defines the maximum size of the container log file before it is rotated in MiB. The mutator converts this integer into a kubelet-compatible
+                    string with the "Mi" unit when applying the configuration.
+                    For example: "5 => 5Mi".
+                    Default: 10
+                  format: int32
+                  minimum: 1
+                  type: integer
+                eventBurst:
+                  description: |-
+                    EventBurst is the maximum size of a burst of event creations, temporarily
+                    allows event creations to burst to this number, while still not exceeding
+                    eventRecordQPS. Only used if eventRecordQPS > 0.
+                    Default: 100
+                  format: int32
+                  maximum: 1000
+                  minimum: 0
+                  type: integer
+                eventRecordQPS:
+                  description: |-
+                    EventRecordQPS is the maximum event creations per second. If 0, there
+                    is no limit enforced. Corresponds to --event-qps kubelet flag.
+                    Default: 50
+                  format: int32
+                  maximum: 100
+                  minimum: 0
+                  type: integer
+                healthzBindAddress:
+                  description: |-
+                    HealthzBindAddress is the IP address for the healthz server to serve on.
+                    Default: "127.0.0.1"
+                  format: ip
+                  type: string
+                imageGCHighThresholdPercent:
+                  description: |-
+                    ImageGCHighThresholdPercent is the percent of disk usage after which
+                    image garbage collection is always run. The percent is calculated as
+                    this field value out of 100.
+                    Default: 85
+                  format: int32
+                  maximum: 100
+                  minimum: 0
+                  type: integer
+                imageGCLowThresholdPercent:
+                  description: |-
+                    ImageGCLowThresholdPercent is the percent of disk usage before which
+                    image garbage collection is never run. Lowest disk usage to garbage
+                    collect to. The percent is calculated as this field value out of 100.
+                    Default: 80
+                  format: int32
+                  maximum: 100
+                  minimum: 0
+                  type: integer
+                imageMaximumGCAge:
+                  description: |-
+                    ImageMaximumGCAge is the maximum age an image can be unused before it is garbage collected.
+                    The default of this field is "0s", which disables this field--meaning images won't be garbage
+                    collected based on being unused for too long.
+                    Default: "0s" (disabled)
+                  type: string
+                imageMinimumGCAge:
+                  description: |-
+                    ImageMinimumGCAge is the minimum age for an unused image before it is
+                    garbage collected.
+                    Default: "2m"
+                  type: string
+                imagePullCredentialsVerificationPolicy:
+                  description: |-
+                    ImagePullCredentialsVerificationPolicy determines how credentials should be
+                    verified when pod requests an image that is already present on the node.
+                    Supported values:
+                      - NeverVerify: anyone on a node can use any image present on the node
+                      - NeverVerifyPreloadedImages: images that were pulled to the node by something
+                        else than the kubelet can be used without reverifying pull credentials
+                      - NeverVerifyAllowlistedImages: like "NeverVerifyPreloadedImages" but only node
+                        images from `preloadedImagesVerificationAllowlist` don't require reverification
+                      - AlwaysVerify: all images require credential reverification
+                    Default: "NeverVerifyPreloadedImages"
+                  enum:
+                  - NeverVerify
+                  - NeverVerifyPreloadedImages
+                  - NeverVerifyAllowlistedImages
+                  - AlwaysVerify
+                  type: string
+                logging:
+                  description: |-
+                    Logging specifies the logging configuration options for the kubelet.
+                    This controls log levels, formats, and output destinations for kubelet logs.
+                    Refer to the Kubernetes component-base logs options for more information.
+                  properties:
+                    flushFrequency:
+                      description: |-
+                        FlushFrequency is the maximum time between log flushes.
+                        If specified as a string, it's parsed as a duration (e.g., "1s").
+                        If specified as an integer, it's the maximum number of nanoseconds.
+                        Ignored if the selected logging backend writes log messages without buffering.
+                        Corresponds to --log-flush-frequency flag.
+                        Default: 5s
+                      type: string
+                    format:
+                      description: |-
+                        Format specifies the structure of log messages.
+                        Supported values are "text" (default) and "json".
+                        Corresponds to --logging-format flag.
+                        Default: "text"
+                      enum:
+                      - text
+                      - json
+                      type: string
+                    verbosity:
+                      description: |-
+                        Verbosity is the threshold that determines which log messages are logged.
+                        Default is zero which logs only the most important messages.
+                        Higher values enable additional messages. Error messages are always logged.
+                        Corresponds to -v or --v flag.
+                        Default: 0
+                      format: int32
+                      type: integer
+                  type: object
+                maxParallelImagePulls:
+                  description: |-
+                    MaxParallelImagePulls sets the maximum number of image pulls in parallel.
+                    This field is only used when SerializeImagePulls is false.
+                    Corresponds to --max-parallel-image-pulls kubelet flag.
+                    Default: nil (no limit)
+                  format: int32
+                  maximum: 100
+                  minimum: 1
+                  type: integer
+                maxPods:
+                  description: |-
+                    MaxPods is the number of pods that can run on this Kubelet.
+                    Default: 110
+                  format: int32
+                  maximum: 110
+                  minimum: 20
+                  type: integer
+                preloadedImagesVerificationAllowlist:
+                  description: |-
+                    PreloadedImagesVerificationAllowlist specifies a list of images that are
+                    exempted from credential reverification for the "NeverVerifyAllowlistedImages"
+                    `imagePullCredentialsVerificationPolicy`.
+                    The list accepts a full path segment wildcard suffix "/*".
+                    Only use image specs without an image tag or digest.
+                  items:
+                    type: string
+                  type: array
+                registryBurst:
+                  description: |-
+                    RegistryBurst is the maximum size of bursty pulls, temporarily allows
+                    pulls to burst to this number, while still not exceeding registryPullQPS.
+                    Only used if registryPullQPS > 0.
+                    Default: 10
+                  format: int32
+                  maximum: 1000
+                  minimum: 0
+                  type: integer
+                registryPullQPS:
+                  description: |-
+                    RegistryPullQPS is the limit of registry pulls per second.
+                    Set to 0 for no limit.
+                    Default: 5
+                  format: int32
+                  maximum: 100
+                  minimum: 0
+                  type: integer
+                serializeImagePulls:
+                  description: |-
+                    SerializeImagePulls when enabled, tells the Kubelet to pull images one at a time.
+                    Default: true
+                  type: boolean
+                streamingConnectionIdleTimeout:
+                  description: |-
+                    StreamingConnectionIdleTimeout is the maximum time a streaming connection
+                    can be idle before the connection is automatically closed.
+                    Default: "5m"
+                  type: string
+              type: object
+              x-kubernetes-validations:
+              - message: imageGCLowThresholdPercent must be < imageGCHighThresholdPercent
+                  when both are specified
+                rule: '!has(self.imageGCLowThresholdPercent) || !has(self.imageGCHighThresholdPercent)
+                  || self.imageGCLowThresholdPercent < self.imageGCHighThresholdPercent'
+              - message: registryBurst must be > 0 when registryPullQPS > 0
+                rule: '!has(self.registryPullQPS) || self.registryPullQPS == 0 ||
+                  !has(self.registryBurst) || self.registryBurst > 0'
+            security:
+              description: Security configures Kubernetes specific security settings.
+              properties:
+                podSecurityStandard:
+                  default: {}
+                  description: PodSecurityStandard configures the PodSecurityStandard
+                    settings for the cluster.
+                  properties:
+                    audit:
+                      description: |-
+                        Audit sets the level for the audit PodSecurityConfiguration mode.
+                        Policy violations trigger an audit annotation, but are otherwise allowed
+                        One of "", privileged, baseline, restricted.
+                      enum:
+                      - ""
+                      - privileged
+                      - baseline
+                      - restricted
+                      type: string
+                    auditVersion:
+                      description: |-
+                        AuditVersion can be used to pin the policy to the version that shipped with a given
+                        Kubernetes minor version (e.g. v1.31) when in audit mode.
+                      type: string
+                    deactivated:
+                      default: false
+                      description: Deactivated disables the patches for Pod Security
+                        Standard via AdmissionConfiguration.
+                      type: boolean
+                    enforce:
+                      description: |-
+                        Enforce sets the level for the enforce PodSecurityConfiguration mode.
+                        Policy violations cause the pod to be rejected.
+                        One of "", privileged, baseline, restricted.
+                      enum:
+                      - ""
+                      - privileged
+                      - baseline
+                      - restricted
+                      type: string
+                    enforceVersion:
+                      description: |-
+                        EnforceVersion can be used to pin the policy to the version that shipped with a given
+                        Kubernetes minor version (e.g. v1.31) when in enforce mode.
+                      type: string
+                    exemptions:
+                      description: |-
+                        Exemptions can be statically configured based on (requesting) user, RuntimeClass, or namespace.
+                        A request meeting exemption criteria is ignored by the admission plugin.
+                        Currently only namespace exemptions are supported.
+                      properties:
+                        namespaces:
+                          description: Namespaces where PodSecurityStandards will
+                            be ignored.
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    warn:
+                      description: |-
+                        Warn sets the level for the warn PodSecurityConfiguration mode.
+                        Policy violations trigger a user-facing warning, but are otherwise allowed.
+                        One of "", privileged, baseline, restricted.
+                      enum:
+                      - ""
+                      - privileged
+                      - baseline
+                      - restricted
+                      type: string
+                    warnVersion:
+                      description: |-
+                        WarnVersion can be used to pin the policy to the version that shipped with a given
+                        Kubernetes minor version (e.g. v1.31) when in warn mode.
+                      type: string
+                  type: object
+                resourceQuotaConfiguration:
+                  description: ResourceQuotaConfiguration configures the ResourceQuota
+                    admission control settings for the cluster.
+                  properties:
+                    enabled:
+                      default: false
+                      description: |-
+                        Enabled enables the patches for ResourceQuotaConfiguration via AdmissionConfiguration.
+                        Once enabled, the ResourceQuota admission controller will be configured to limit pods with PriorityClass In [system-node-critical, system-cluster-critical].
+                      type: boolean
+                  type: object
+              type: object
+          type: object
+    definitionsConflict: false
+    name: kubernetes
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Node configures Kubernetes node specific settings.
+            Supported scopes: cluster, controlPlane, workers
+          properties:
+            labels:
+              additionalProperties:
+                type: string
+              description: Labels is a list of user defined name-value pairs
+              type: object
+            taints:
+              description: |-
+                Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil,
+                it will be defaulted with a control-plane taint for control-plane nodes. If you don't want to taint your control-plane
+                node, set this field to an empty slice, i.e. `taints: []` in the YAML file. This field is solely used for Node registration.
+              items:
+                description: |-
+                  Taint configures taints that will be applied to node objects in the cluster or pool.
+                  Kubernetes taint is composed of three fields: key, value, and effect.
+                properties:
+                  effect:
+                    description: |-
+                      Effect of the taint on pods that do not tolerate the taint.
+                      Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
+                    enum:
+                    - NoSchedule
+                    - PreferNoSchedule
+                    - NoExecute
+                    type: string
+                  key:
+                    description: Key is the taint key to be applied to a node.
+                    type: string
+                  value:
+                    description: Value is the taint value corresponding to the taint
+                      key.
+                    type: string
+                required:
+                - effect
+                - key
+                - value
+                type: object
+              type: array
+          type: object
+    definitionsConflict: false
+    name: node
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          description: |-
+            OSConfiguration configures the system settings of nodes that are independent of Kubernetes.
+            Supported scopes: cluster, controlPlane, workers
+          properties:
+            directoryJoin:
+              description: |-
+                DirectoryJoin configures the node to join a Windows Active Directory.
+                Only supported on Windows at present.
+              properties:
+                credentialSecretRef:
+                  description: |-
+                    CredentialSecretRef is the name of the secret containing Active Directory join credentials.
+                    These will be passed to all new Windows new nodes to allow them to join the Active Directory domain.
+                    The secret must have the following keys:
+                    username - The username for the Active Directory account. This must be in one of the following formats:
+                    - <username>
+                    - <domain>\<username>
+                    - <username>@<fqdn of domain>
+                    password - The password for the account
+                  type: string
+                domain:
+                  description: Domain is the FQDN of the Active Directory Kerberos
+                    domain to join.
+                  type: string
+                gmsaControlSecurityGroupDN:
+                  description: |-
+                    GMSAControlSecurityGroupDN is an optional Windows Active Directory security group that has permissions to
+                    access the password of the Group Managed Service Accounts.
+                    The value will be validated according to https://tools.ietf.org/html/rfc4514
+                  type: string
+                organizationalUnitDN:
+                  description: |-
+                    OrganizationalUnitDN is an optional organizational unit where the node will be added to in Active Directory.
+                    The value will be validated according to  https://tools.ietf.org/html/rfc4514
+                  type: string
+              required:
+              - credentialSecretRef
+              - domain
+              type: object
+            fips:
+              description: |-
+                FIPS configures FIPS related settings for the Kubernetes cluster to run in FIPS mode.
+                Supported scopes: cluster
+              properties:
+                enabled:
+                  default: false
+                  description: Enable specifies whether FIPS settings are enabled
+                    and enforced on the node
+                  type: boolean
+              type: object
+            grub:
+              description: GRUB configures GRUB Boot Loader.
+              properties:
+                password:
+                  description: Password configures the password protection for GRUB
+                    Boot Loader (Only applicable on Linux).
+                  properties:
+                    enabled:
+                      default: false
+                      description: Enabled defines if the GRUB Boot Loader must be
+                        protected with a password
+                      type: boolean
+                    secretRef:
+                      description: |-
+                        SecretRef is the name of the secret containing the password to protect GRUB
+                        Key is the data.key field within the secret containing the password value.
+                        If not specified, the secret will be automatically generated as <cluster name>-grub-password when
+                        `Enabled` is set to true.
+
+                        The password value must be a PBKDF2 SHA-512 hashed password using grub2-mkpasswd-pbkdf2. The value will
+                        set to GRUB password as superuser password. User must type in the plain-text password to boot from non-default entries
+                        or modify boot parameters for any boot entry.
+
+                        See https://www.gnu.org/software/grub/manual/grub/html_node/Invoking-grub_002dmkpasswd_002dpbkdf2.html for more information.
+                      properties:
+                        key:
+                          description: Key is the entry in the secret's data map that
+                            is to be used to retrieve secret data.
+                          type: string
+                        name:
+                          description: Name is the name of the secret and must be
+                            in the same namespace as the cluster.
+                          type: string
+                      required:
+                      - key
+                      - name
+                      type: object
+                  type: object
+                  x-kubernetes-validations:
+                  - message: secretRef cannot be set when enabled is false
+                    rule: '!(self.enabled == false && has(self.secretRef))'
+              type: object
+            ntp:
+              description: |-
+                NTP sets the time servers that will be used by nodes in this cluster.
+                By default, NTP servers are inherited from vCenter.
+              properties:
+                servers:
+                  description: |-
+                    NTP sets the time servers that will be used by nodes in this cluster.
+                    By default, NTP servers are inherited from vCenter.
+                  items:
+                    type: string
+                  type: array
+              required:
+              - servers
+              type: object
+            sshd:
+              description: SSHD configures the sshd config of the node.
+              properties:
+                banner:
+                  description: |-
+                    Banner specifies the login message used for sending a legal warning message
+                    before authentication
+                  type: string
+              type: object
+            systemProxy:
+              description: SystemProxy configures parameters that reference a proxy
+                server for outbound cluster connections.
+              properties:
+                http:
+                  description: |-
+                    HTTP is the proxy server to be used for all http connections. This should be a hostname or dotted numerical
+                    IP address. To specify port number in this string, append :[port] to the end of the host name.
+                    The proxy string may be prefixed with [scheme]:// to specify which kind of proxy is used.
+                    This configures the http_proxy environment variable for profile login and systemd on Linux, and is inherited
+                    by kubelet and containerd. On Windows, the http_proxy environment variable is set for the kubelet and
+                    containerd service. In addition, WinHTTP proxy server is also set for the http protocol. Note, that for WinHTTP,
+                    a https scheme for proxy servers is not supported, and will be ignored for WinHTTP configuration. WinHTTP is used by
+                    services such as Windows Update Services.
+                  type: string
+                  x-kubernetes-validations:
+                  - messageExpression: '''%s URL is invalid''.format([self])'
+                    reason: FieldValueInvalid
+                    rule: isURL(self)
+                https:
+                  description: |-
+                    HTTPS configures the proxy server to be used for all https connections. This should be a hostname or dotted numerical
+                    IP address. To specify port number in this string, append :[port] to the end of the host name.
+                    The proxy string may be prefixed with [scheme]:// to specify which kind of proxy is used.
+                    This configures the http_proxy environment variable for profile login and systemd on Linux, and is inherited
+                    by kubelet and containerd. On Windows, the http_proxy environment variable is set for the kubelet and
+                    containerd service. In addition, WinHTTP proxy server is also set for the http protocol. Note, that for WinHTTP,
+                    a https scheme for proxy servers is not supported, and will be ignored for WinHTTP configuration. WinHTTP is used by
+                    services such as Windows Update Services. All proxy servers MUST support the CONNECT method to allow pass-through TLS.
+                    Intercepting proxies will cause connectivity issues for websockets, HTTP/2 & HTTP/3.
+                  type: string
+                  x-kubernetes-validations:
+                  - messageExpression: '''%s URL is invalid''.format([self])'
+                    reason: FieldValueInvalid
+                    rule: isURL(self)
+                noProxy:
+                  description: |-
+                    NoProxy configures the list of hostnames and CIDR ranges that should be reached without the configured proxy servers.
+                    The only wildcard available is a single * character, which matches all hosts, and effectively disables the proxy.
+                    Each name in this list is matched as either a domain which contains the hostname, or the hostname itself.
+                    For example, "ample.com" would match ample.com, ample.com:80, and www.ample.com, but not www.example.com or
+                    ample.com.org.
+                    IP addresses specified to this option can be provided using CIDR notation: an appended slash and number specifies the
+                    number of "network bits" out of the address to use in the comparison. For example "192.168.0.0/16" would match all
+                    addresses starting with "192.168".
+                    Enter IPv6 numerical addresses in the list of hostnames without enclosing brackets.
+                    On Linux, this configures no_proxy environment variables for systemd and the login profile, and is inherited by
+                    containerd and kubelet.
+                    On Windows, this configures the no_proxy environment variable for the containerd and kubelet services. The NoProxy
+                    list is also translated into a system winhttp bypass list. However, note that Windows does not support CIDR
+                    notation for the bypass list, and instead, CIDR ranges are converted 'best-effort' to wildcards, e.g.
+                    "192.168.0.0/16" becomes "192.168.*.*"
+                  items:
+                    type: string
+                  type: array
+              required:
+              - http
+              - https
+              - noProxy
+              type: object
+            trust:
+              description: Trust configures system-wide certificate trust for nodes
+              properties:
+                additionalTrustedCAs:
+                  description: |-
+                    AdditionalTrustedCAs is a list of additional CAs to be added to the system trust
+                    store of nodes.
+                  items:
+                    description: CaOnlyConfiguration defines model for caOnlyConfiguration.
+                    properties:
+                      caCert:
+                        description: SecretContent configures a reference to or content
+                          of secret data.
+                        properties:
+                          content:
+                            description: |-
+                              Content should only be used where it is ok if the secret data is viewable on the Cluster CR, and allows
+                              direct injection of a secret.
+                            type: string
+                          secretRef:
+                            description: SecretRef is the name of a secret within
+                              the namespace that contains secret data to be used.
+                            properties:
+                              key:
+                                description: Key is the entry in the secret's data
+                                  map that is to be used to retrieve secret data.
+                                type: string
+                              name:
+                                description: Name is the name of the secret and must
+                                  be in the same namespace as the cluster.
+                                type: string
+                            required:
+                            - key
+                            - name
+                            type: object
+                        type: object
+                    required:
+                    - caCert
+                    type: object
+                  type: array
+              required:
+              - additionalTrustedCAs
+              type: object
+            ubuntuPro:
+              description: |-
+                UbuntuPro configures the Ubuntu Pro subscription of the node.
+                Only supported on Ubuntu.
+              properties:
+                services:
+                  description: Services specifies the Ubuntu Pro services to be enabled.
+                  items:
+                    type: string
+                  type: array
+                settings:
+                  description: Settings specifies the Ubuntu Pro client (ubuntu-advantage-tools)
+                    settings to be configured.
+                  items:
+                    description: UbuntuProSetting configures the setting for Ubuntu
+                      Pro client (ubuntu-advantage-tools).
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+                    required:
+                    - key
+                    - value
+                    type: object
+                  type: array
+                tokenSecretRef:
+                  description: |-
+                    TokenSecretRef is the name of the secret containing a valid Ubuntu Pro Subscription token.
+                    The secret must have a key token with the content of a valid token.
+                  type: string
+              required:
+              - tokenSecretRef
+              type: object
+            user:
+              description: |-
+                User is an administrative user that will be created on all nodes. If not set, this is defaulted to
+                "vmware-system-user". The administrative user will be added to "wheel" group on Linux and "Administrators"
+                on Windows
+              properties:
+                password:
+                  description: Password configures the password policy such as password
+                    max age and renewal settings.
+                  properties:
+                    renewalDaysBeforeExpiry:
+                      description: |-
+                        RenewalDaysBeforeExpiry configures the days to renew the password before it gets expired.
+                        The expired password will re-newed when it reaches the validity MaxAgeInDays - RenewalDaysBeforeExpiry.
+
+                        On Linux, it also manages PASS_WARN_AGE in /etc/login.defs on Linux to give a warning
+                        when the password reaches the validity.
+
+                        Defaults to 7 days if omitted.
+
+                        Only supported on Linux at present.
+                      type: integer
+                  type: object
+                passwordSecret:
+                  description: |-
+                    Key is the data.key field within the secret containing the password value.
+                    If not specified, the secret will be automatically generated as <cluster name>-ssh-password.
+                  properties:
+                    key:
+                      description: |-
+                        Key is the data.key field within the secret containing the password value.
+                        For Linux, this must be the hashed value that should be inserted into /etc/shadow.
+                        For Windows, only plain text is supported, and is therefore not recommended and is not configured by default.
+                      type: string
+                    name:
+                      description: Name is the name of the secret containing the password
+                        for the administrative account.
+                      type: string
+                  required:
+                  - key
+                  - name
+                  type: object
+                requirePasswordOnSudo:
+                  description: RequirePasswordOnSudo configures whether password re-authentication
+                    is required on sudo.
+                  type: boolean
+                sshAuthorizedKey:
+                  description: |-
+                    The string of the SSH public key that is to be used for the administrative account.
+                    The public key must be of any FIPS-140 approved algorithm.
+                    If not specified, a key will be automatically generated and the private key stored in
+                    the secret <cluster-name>-ssh
+                  type: string
+                user:
+                  description: Name is the name of the user to be created. By default,
+                    this is vmware-system-user.
+                  type: string
+              required:
+              - user
+              type: object
+          type: object
+    definitionsConflict: false
+    name: osConfiguration
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          description: |-
+            ResourceConfiguration configures kubelet resource options.
+            Currently, only CPU and memory reservations are supported.
+            Supported scopes: cluster, controlPlane, workers
+          properties:
+            systemReserved:
+              description: SystemReserved defines the system reserved CPU and memory
+                reservations.
+              properties:
+                automatic:
+                  default: true
+                  description: Automatic configures the automatic calculation of system
+                    reserved resources.
+                  type: boolean
+                cpu:
+                  anyOf:
+                  - type: integer
+                  - type: string
+                  description: |-
+                    CPU describes the number of CPU cores reserved for system processes.
+
+                    Inputs should be of type https://k8s.io/docs/reference/kubernetes-api/common-definitions/quantity/
+                    For a detailed explanation of CPU resource units in Kubernetes, refer to
+                    https://k8s.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu
+
+                    Example: The input value of 1 describes 1 virtual CPU core.
+                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                  x-kubernetes-int-or-string: true
+                  x-kubernetes-validations:
+                  - messageExpression: '''%s value is invalid''.format([self])'
+                    reason: FieldValueInvalid
+                    rule: isQuantity(self)
+                memory:
+                  anyOf:
+                  - type: integer
+                  - type: string
+                  description: |-
+                    Memory describes the memory resources reserved for system processes.
+
+                    Inputs should be of type https://k8s.io/docs/reference/kubernetes-api/common-definitions/quantity/
+                    For a detailed explanation of memory resource units in Kubernetes, refer to
+                    https://k8s.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-memory
+
+                    Example: 4096Mi, 8G
+                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                  x-kubernetes-int-or-string: true
+                  x-kubernetes-validations:
+                  - messageExpression: '''%s value is invalid''.format([self])'
+                    reason: FieldValueInvalid
+                    rule: isQuantity(self)
+              type: object
+          type: object
+    definitionsConflict: false
+    name: resourceConfiguration
+  - definitions:
+    - from: default
+      required: true
+      schema:
+        openAPIV3Schema:
+          description: StorageClass sets the StorageClass that will be used to create
+            node root volumes.
+          type: string
+    definitionsConflict: false
+    name: storageClass
+  - definitions:
+    - from: default
+      required: true
+      schema:
+        openAPIV3Schema:
+          description: |-
+            VMClass sets the VMClass that will be used to create nodes.
+            Supported scopes: cluster, controlPlane, workers
+          type: string
+    definitionsConflict: false
+    name: vmClass
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          description: Volumes configures additional disks to be attached to node
+            virtual machines.
+          items:
+            description: Volume defines a model for volumes.
+            properties:
+              capacity:
+                description: Capacity defines the storage capacity of the volume.
+                type: string
+              mountPath:
+                description: MountPath defines the mount path for the volume.
+                type: string
+              name:
+                description: Name defines the name of the volume.
+                type: string
+              storageClass:
+                description: StorageClass defines the Storage class to use for the
+                  volume.
+                type: string
+            required:
+            - capacity
+            - mountPath
+            - name
+            type: object
+          type: array
+    definitionsConflict: false
+    name: volumes
+  - definitions:
+    - from: default
+      required: false
+      schema:
+        openAPIV3Schema:
+          description: |-
+            VSphereOptions configures vSphere specific options related to nodes
+            Supported scopes: cluster, controlPlane, workers
+          properties:
+            persistentVolumes:
+              description: PersistentVolumes configures what is available for PVCs
+                to be used in the cluster.
+              properties:
+                availableStorageClasses:
+                  description: AvailableStorageClasses lists the storage classes that
+                    can be used in the cluster.
+                  items:
+                    type: string
+                  type: array
+                availableVolumeSnapshotClasses:
+                  description: AvailableVolumeSnapshotClasses lists the volume snapshot
+                    classes that can be used in the cluster.
+                  items:
+                    type: string
+                  type: array
+                customizableStorageClassAnnotations:
+                  description: |-
+                    CustomizableStorageClassAnnotations is a list of annotation keys set on the storage classes within the cluster
+                    which can be customized by the user. Any edits made to the values of these annotations will not be overridden by VKS.
+                  items:
+                    type: string
+                  type: array
+                customizableStorageClassLabels:
+                  description: |-
+                    CustomizableStorageClassLabels is a list of label keys set on the storage classes within the cluster
+                    which can be customized by the user. Any edits made to the values of these labels will not be overridden by VKS.
+                  items:
+                    type: string
+                  type: array
+                defaultStorageClass:
+                  description: |-
+                    DefaultStorageClass sets the default storage class inside the cluster.
+                    The StorageClass with this name gets a "storageclass.kubernetes.io/is-default-class: true"
+                    label added during storage class sync into the guest cluster.
+                  type: string
+                defaultVolumeSnapshotClass:
+                  description: |-
+                    DefaultVolumeSnapshotClass sets the default volume snapshot class inside the cluster.
+                    The VolumeSnapshotClass with this name gets a "snapshot.storage.kubernetes.io/is-default-class: true"
+                    label added during volume snapshot class sync into the guest cluster.
+                  type: string
+              type: object
+          type: object
+    definitionsConflict: false
+    name: vsphereOptions
