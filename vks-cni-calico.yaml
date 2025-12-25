@@ -1,24 +1,33 @@
 ---
+apiVersion: cni.tanzu.vmware.com/v1alpha1
+kind: CalicoConfig
+metadata:
+  name: tigera-calico-vks
+spec:
+  calico:
+    config:
+      vethMTU: 0
+---
 apiVersion: run.tanzu.vmware.com/v1alpha3
 kind: ClusterBootstrap
 metadata:
   annotations:
-    tkg.tanzu.vmware.com/add-missing-fields-from-tkr: v1.34.1---vmware.1-vkr.4
-  name: tigera-vks-no-cni
-  namespace: tigera
+    tkg.tanzu.vmware.com/add-missing-fields-from-tkr: v1.33.3---vmware.1-fips-vkr.1
+  name: tigera-calico-vks
 spec:
-  # Omission of the cni section here prevents the bootstrap controller
-  # from installing a CNI package (like Antrea or Calico).
-  additionalPackages:
-    - refName: metrics-server*
-    - refName: secretgen-controller*
-    - refName: pinniped*
+  cni:
+    refName: calico.tanzu.vmware.com.3.30.0+vmware.2-fips-tkg.1
+    valuesFrom:
+      providerRef:
+        apiGroup: cni.tanzu.vmware.com
+        kind: CalicoConfig
+        name: tigera-calico-vks
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-  name: tigera-vks-no-cni
-  namespace: tigera
+  name: tigera-calico-vks
+  namespace: tigera-vmware
 spec:
   clusterNetwork:
     services:
@@ -27,8 +36,10 @@ spec:
       cidrBlocks: ["192.168.0.0/16"]
     serviceDomain: "cluster.local"
   topology:
-    class: builtin-generic-v3.5.0
-    version: v1.34.1---vmware.1-vkr.4
+    classRef:
+      name: builtin-generic-v3.5.0
+      namespace: vmware-system-vks-public
+    version: v1.33.3+vmware.1-fips
     controlPlane:
       replicas: 1
       metadata:
