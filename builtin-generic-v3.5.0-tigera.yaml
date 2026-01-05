@@ -17,7 +17,7 @@ metadata:
       # name: builtin-generic-v3.5.0
   name: builtin-generic-v3.5.0-tigera
       # namespace: vmware-system-vks-public
-  namespace: tigera-vmware
+  namespace: tigera
     # CLEE resourceVersion: "44390"
     # CLEE uid: 6b915e8a-459f-40cc-8ea4-669177862334
 spec:
