@@ -72,9 +72,15 @@ spec:
       - op: add
         path: /spec/template/spec/kubeadmConfigSpec/postKubeadmCommands
         value:
-        - nft add rule filter INPUT tcp dport { 179, 5473 } accept || true
-        - iptables -I INPUT 1 -p tcp --dport 179 -j ACCEPT || true
-        - iptables -I INPUT 1 -p tcp --dport 5473 -j ACCEPT || true
+        - |
+          cat <<EOF > /etc/rc.local
+          #!/bin/bash
+          nft add rule filter INPUT tcp dport { 179, 5473 } accept || true
+          iptables -I INPUT 1 -p tcp --dport 179 -j ACCEPT || true
+          iptables -I INPUT 1 -p tcp --dport 5473 -j ACCEPT || true
+          EOF
+        - chmod +x /etc/rc.local
+        - /etc/rc.local
     - selector:
         apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
         kind: KubeadmConfigTemplate
@@ -86,9 +92,15 @@ spec:
       - op: add
         path: /spec/template/spec/postKubeadmCommands
         value:
-        - nft add rule filter INPUT tcp dport { 179, 5473 } accept || true
-        - iptables -I INPUT 1 -p tcp --dport 179 -j ACCEPT || true
-        - iptables -I INPUT 1 -p tcp --dport 5473 -j ACCEPT || true
+        - |
+          cat <<EOF > /etc/rc.local
+          #!/bin/bash
+          nft add rule filter INPUT tcp dport { 179, 5473 } accept || true
+          iptables -I INPUT 1 -p tcp --dport 179 -j ACCEPT || true
+          iptables -I INPUT 1 -p tcp --dport 5473 -j ACCEPT || true
+          EOF
+        - chmod +x /etc/rc.local
+        - /etc/rc.local
   workers:
     machineDeployments:
     - bootstrap:
