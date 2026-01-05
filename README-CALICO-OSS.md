@@ -205,7 +205,7 @@ kubectl get packageinstall -n vmware-system-tkg
 # tigera-calico-vks-vsphere-pv-csi               vsphere-pv-csi.tanzu.vmware.com               3.5.0+vmware.1-tkg.1         Reconcile succeeded   6m41s   
 
 # Disable reconciliation process
-kubectl patch packageinstall tigera-calico-vks-calico 
+kubectl patch packageinstall tigera-calico-vks-calico \
 -n vmware-system-tkg \
 --type='merge' \
 -p '{"spec":{"paused":true}}'
