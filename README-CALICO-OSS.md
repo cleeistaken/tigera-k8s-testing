@@ -11,28 +11,40 @@ git clone https://github.com/cleeistaken/tigera-k8s-testing.git
 ```
 
 ### Required vSphere Steps
-1. In WCP, create a name space names '**tigera**'
-2. Add '**vsan-esa-default-policy-raid5**' storage policy to '**tigera**' namespace
-3. Create and add a VM class named '**vks-8-32-class**' and add it to '**tigera**' namespace
-   * Define the CPU and RAM. This class will be used for the VKS worker nodes
-4. Add '**best-effort-medium**' VM class to '**tigera**' namespace
+1. In WCP, create a supervisor namespace (e.g. 'calico')
+2. Add '**vsan-esa-default-policy-raid5**' storage policy to supervisor namespace
+3. Add VM classes to supervisor namespace 
+   * Create and add a VM class named '**vks-8-32-class**' and add it to supervisor namespace
+     * Define the CPU and RAM. This class will be used for the VKS worker nodes (e.g. 8 vCPU and 32GB RAM)
+   * Add '**best-effort-medium**' VM class to supervisor namespace
 
 **Note**: These steps required access to vCenter and typically done by the infrastructure administrator.
 
 ## Deployment Procedure
 
-### 1. Set variables
+### 1. Set environment variables
+To facilitate the creation of multiple deployments in different environments we create and use variables throughout this sample deployment procedure.
 ```shell
-# Update with correct values!
-SUPERVISOR_IP="10.138.216.198"
-SUPERVISOR_USERNAME="<username>@showcase.tmm.broadcom.lab"
-SUPERVISOR_NAMESPACE_NAME="tigera"
-SUPERVISOR_CONTEXT="tigera-ctx"
-CLUSTER_NAME="tigera-vks"
-CLUSTER_NAMESPACE_NAME="tigera-ns"
+# Update with correct values
+SUPERVISOR_IP="<supervisor_ip>"
+SUPERVISOR_USERNAME="<username>"
+SUPERVISOR_NAMESPACE_NAME="<supervisor_namespace>"
+SUPERVISOR_CONTEXT="<supervisor_context>"
+CLUSTER_NAME="vks_cluster_name"
+CLUSTER_NAMESPACE_NAME="vks_cluster_namespace"
+
+# Example
+# SUPERVISOR_IP="10.138.216.198"           <- this must exist
+# SUPERVISOR_USERNAME="user@vsphere.local" <- this must exist
+# SUPERVISOR_NAMESPACE_NAME="calico"       <- this must exist
+# SUPERVISOR_CONTEXT="calico-ctx"          <- this will be created
+# CLUSTER_NAME="calico-vks"                <- this will be created
+# CLUSTER_NAMESPACE_NAME="calico-vks-ns"   <- this will be created
 ```
 
+
 ### 2. Clean kubectl and vcf configs
+Note: This step is not required but helps avoid issues related to stale contexts or collisions between environments using the same context names.
 ```shell
 rm ~/.kube/config
 rm -rf ~/.config/vcf/
@@ -65,7 +77,10 @@ vcf context create $SUPERVISOR_CONTEXT --endpoint $SUPERVISOR_IP --insecure-skip
 # To change context, use `vcf context use <context_name>`
 # [ok] successfully created context: tigera-ctx
 # [ok] successfully created context: tigera-ctx:tigera
+```
 
+### 4. Set supervisor context
+```shell
 # Set context
 vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
 
@@ -77,7 +92,10 @@ vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
 # [ok] All recommended plugins are already installed and up-to-date. 
 ```
 
-### 4. Create 'builtin-generic-v3.5.0-tigera' clusterclass
+### 5. Create 'builtin-generic-v3.5.0-tigera' clusterclass
+We create a special clusterclass that automates the opening of required ports on the control and workner nodes.
+* TCP/179
+* TCP/5473
 ```shell
 # Check current clusterclasses
 kubectl get clusterclass 
@@ -90,7 +108,7 @@ kubectl get clusterclass
 
 # Add the tigera customclass
 # Note: This custom class opens ports 179 and 5474 in the postKubeadm sections
-kubectl apply -f builtin-generic-v3.5.0-tigera.yaml 
+kubectl apply -f builtin-generic-v3.5.0-tigera.yaml -n $SUPERVISOR_NAMESPACE_NAME
 
 # Expected output
 # clusterclass.cluster.x-k8s.io/builtin-generic-v3.5.0-tigera created
@@ -108,10 +126,11 @@ NAME                            VARIABLES READY   AGE
 
 ```
 
-### 5. Create 'tigera-vks' VKS cluster using custom clusterclass
+### 6. Create VKS cluster using custom clusterclass
+Note: The vks yaml file is set to use "tigera-vks" as the resource names. We use 'sed' to dynamically replace 'tigera-vks' with the vks cluster name set in the environment variables.
 ```shell
 # Create a VKS cluster as defined in vks.yaml
-kubectl apply -f vks-cni-calico-tigera.yaml
+sed "s/tigera-vks/$CLUSTER_NAME/" vks-cni-calico-oss.yaml  | kubectl apply -f -
 
 # Expected output:
 # calicoconfig.cni.tanzu.vmware.com/tigera-calico-vks created
@@ -122,7 +141,10 @@ kubectl apply -f vks-cni-calico-tigera.yaml
 # calicoconfig.cni.tanzu.vmware.com/tigera-calico-vks unchanged
 # clusterbootstrap.run.tanzu.vmware.com/tigera-calico-vks unchanged
 # cluster.cluster.x-k8s.io/tigera-calico-vks configured
+```
 
+### 7. Wait for cluster creation
+```shell
 # Test commands
 kubectl get cluster --watch
 
@@ -136,7 +158,7 @@ kubectl get cluster --watch
 # Note: wait until output shows "Available: True" 
 ```
 
-### 6. Connect to 'tigera-vks' VKS cluster
+### 8. Connect to VKS cluster
 ```shell
 # Connect to the VKS cluster
 vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_NAMESPACE_NAME --workload-cluster-name=$CLUSTER_NAME
@@ -155,6 +177,10 @@ vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $
 # To change context, use `vcf context use <context_name>`
 # [ok] successfully created context: vks
 # [ok] successfully created context: vks:tigera-vks
+```
+
+### 9. Use VKS cluster context
+```shell
 
 # Use context
 vcf context use vks:$CLUSTER_NAME
@@ -186,7 +212,7 @@ kubectl get daemonsets -n kube-system
 # kube-proxy    5         5         5       5            5           kubernetes.io/os=linux   38m
 ```
 
-### 7. Disable automatic reconciliation
+### 10. Disable automatic reconciliation
 ```shell
 # Get package names in 'vmware-system-tkg' namespace
 kubectl get packageinstall -n vmware-system-tkg
@@ -205,7 +231,7 @@ kubectl get packageinstall -n vmware-system-tkg
 # tigera-calico-vks-vsphere-pv-csi               vsphere-pv-csi.tanzu.vmware.com               3.5.0+vmware.1-tkg.1         Reconcile succeeded   6m41s   
 
 # Disable reconciliation process
-kubectl patch packageinstall tigera-calico-vks-calico \
+kubectl patch packageinstall "$CLUSTER_NAME"-calico \
 -n vmware-system-tkg \
 --type='merge' \
 -p '{"spec":{"paused":true}}'
@@ -228,7 +254,7 @@ kubectl get packageinstall -n vmware-system-tkg
 # tigera-calico-vks-vsphere-pv-csi               vsphere-pv-csi.tanzu.vmware.com               3.5.0+vmware.1-tkg.1         Reconcile succeeded   12m   
 ```
 
-### 8. Delete calico-node daemonset
+### 11. Delete calico-node daemonset
 ```shell
 # Check if 'calico-node' daemonset exists
 kubectl get ds calico-node -n kube-system
@@ -253,7 +279,7 @@ kubectl get ds calico-node -n kube-system
 ```
 
 
-### 9. Create 'tigera-ns' namespace
+### 12. Create VKS namespace
 ```shell
 # Create a namespace on the VKS cluster
 kubectl create namespace $CLUSTER_NAMESPACE_NAME
@@ -274,7 +300,7 @@ kubectl config set-context --current --namespace=$CLUSTER_NAMESPACE_NAME
 kubectl get all
 ```
 
-### 10. (Optional) Create Secret with Docker.io Credentials
+### 13. (Optional) Create Secret with Docker.io Credentials
 May be required if the deployment hits errors about the site hitting image pull limits.
 ```shell
 # Create secret with Docker login credentials in Kubernetes
@@ -290,7 +316,7 @@ kubectl patch serviceaccount default \
   -p '{"imagePullSecrets": [{"name": "regcred"}]}'
 ```
 
-### 11. Install Calico OSS
+### 14. Install Calico OSS
 Ref. https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart
 ```shell
 # Create operator

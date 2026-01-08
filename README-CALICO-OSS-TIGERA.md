@@ -1,4 +1,4 @@
-# VKS Default Deployment
+# VKS Calico OSS Deployment for Tigera
 ## Requirements
 ### CLI Tools
 * kubectl cli v1.34: https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl
@@ -21,7 +21,8 @@ git clone https://github.com/cleeistaken/tigera-k8s-testing.git
 
 ## Deployment Procedure
 
-### 1. Set variables
+### 1. Set environment variables
+To facilitate the creation of multiple deployments in different environments we create and use variables throughout this sample deployment procedure.
 ```shell
 # Update with correct values!
 SUPERVISOR_IP="10.138.216.198"
@@ -29,10 +30,12 @@ SUPERVISOR_USERNAME="<username>@showcase.tmm.broadcom.lab"
 SUPERVISOR_NAMESPACE_NAME="tigera"
 SUPERVISOR_CONTEXT="tigera-ctx"
 CLUSTER_NAME="tigera-vks"
-CLUSTER_NAMESPACE_NAME="tigera-vks-ns"
+CLUSTER_NAMESPACE_NAME="tigera-ns"
 ```
 
+
 ### 2. Clean kubectl and vcf configs
+Note: This step is not required but helps avoid issues related to stale contexts or collisions between environments using the same context names.
 ```shell
 rm ~/.kube/config
 rm -rf ~/.config/vcf/
@@ -80,27 +83,59 @@ vcf context use $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
 # [ok] All recommended plugins are already installed and up-to-date. 
 ```
 
-### 5. Create VKS cluster
+### 5. Create 'builtin-generic-v3.5.0-tigera' clusterclass
+We create a special clusterclass that automates the opening of required ports on the control and workner nodes.
+* TCP/179
+* TCP/5473
 ```shell
-# Create a VKS cluster using the default CNI
-sed "s/tigera-vks/$CLUSTER_NAME/" vks.yaml  | kubectl apply -f -
+# Check current clusterclasses
+kubectl get clusterclass 
 
-# OR create a VKS cluster using the VKS version of Calico 
+# Expected output
+# NAME                     VARIABLES READY   AGE
+# builtin-generic-v3.1.0   True              xxd
+# builtin-generic-v3.2.0   True              xxd
+# builtin-generic-v3.3.0   True              xxd
 
-sed "s/tigera-vks/$CLUSTER_NAME/" vks-cni-calico.yaml  | kubectl apply -f -
+# Add the tigera customclass
+# Note: This custom class opens ports 179 and 5474 in the postKubeadm sections
+kubectl apply -f builtin-generic-v3.5.0-tigera.yaml -n $SUPERVISOR_NAMESPACE_NAME
+
+# Expected output
+# clusterclass.cluster.x-k8s.io/builtin-generic-v3.5.0-tigera created
+
+
+# Ensure clusterclass is created
+kubectl get clusterclass 
+
+# Expected output
+NAME                            VARIABLES READY   AGE
+# builtin-generic-v3.1.0          True              xxd
+# builtin-generic-v3.2.0          True              xxd
+# builtin-generic-v3.3.0          True              xxd
+# builtin-generic-v3.5.0-tigera   True              xxd <--------
+
+```
+
+### 6. Create VKS cluster using custom clusterclass
+Note: The vks yaml file is set to use "tigera-vks" as the resource names. We use 'sed' to dynamically replace 'tigera-vks' with the vks cluster name set in the environment variables.
+```shell
+# Create a VKS cluster as defined in vks.yaml
+sed "s/tigera-vks/$CLUSTER_NAME/" vks-cni-calico-oss.yaml  | kubectl apply -f -
 
 # Expected output:
-# calicoconfig.cni.tanzu.vmware.com/tigera-vks created
-# clusterbootstrap.run.tanzu.vmware.com/tigera-vks created
-# Warning: cluster.x-k8s.io/v1beta1 Cluster is deprecated; use cluster.x-k8s.io/v1beta2 Cluster
-# cluster.cluster.x-k8s.io/tigera-vks created
+# calicoconfig.cni.tanzu.vmware.com/tigera-calico-vks created
+# clusterbootstrap.run.tanzu.vmware.com/tigera-calico-vks created
+# cluster.cluster.x-k8s.io/tigera-calico-vks created
 # 
 # or:
-# calicoconfig.cni.tanzu.vmware.com/tigera-vks unchanged
-# clusterbootstrap.run.tanzu.vmware.com/tigera-vks unchanged
-# Warning: cluster.x-k8s.io/v1beta1 Cluster is deprecated; use cluster.x-k8s.io/v1beta2 Cluster
-# cluster.cluster.x-k8s.io/tigera-vks created
+# calicoconfig.cni.tanzu.vmware.com/tigera-calico-vks unchanged
+# clusterbootstrap.run.tanzu.vmware.com/tigera-calico-vks unchanged
+# cluster.cluster.x-k8s.io/tigera-calico-vks configured
+```
 
+### 7. Wait for cluster creation
+```shell
 # Test commands
 kubectl get cluster --watch
 
@@ -114,7 +149,7 @@ kubectl get cluster --watch
 # Note: wait until output shows "Available: True" 
 ```
 
-### 6. Connect to VKS cluster
+### 8. Connect to VKS cluster
 ```shell
 # Connect to the VKS cluster
 vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $SUPERVISOR_USERNAME --workload-cluster-namespace=$SUPERVISOR_NAMESPACE_NAME --workload-cluster-name=$CLUSTER_NAME
@@ -135,7 +170,7 @@ vcf context create vks --endpoint $SUPERVISOR_IP --insecure-skip-tls-verify -u $
 # [ok] successfully created context: vks:tigera-vks
 ```
 
-### 7 Use VKS cluster context
+### 9. Use VKS cluster context
 ```shell
 
 # Use context
@@ -168,7 +203,74 @@ kubectl get daemonsets -n kube-system
 # kube-proxy    5         5         5       5            5           kubernetes.io/os=linux   38m
 ```
 
-### 8. Create VKS namespace
+### 10. Disable automatic reconciliation
+```shell
+# Get package names in 'vmware-system-tkg' namespace
+kubectl get packageinstall -n vmware-system-tkg
+
+# Expected output:
+# Note: 'calico.tanzu.vmware.com' description shows 'Reconcile succeeded'
+
+# NAME                                           PACKAGE NAME                                  PACKAGE VERSION              DESCRIPTION           AGE     PAUSED
+# tigera-calico-vks-calico                       calico.tanzu.vmware.com                       3.30.0+vmware.2-fips-tkg.1   Reconcile succeeded   6m41s   
+# tigera-calico-vks-gateway-api                  gateway-api.tanzu.vmware.com                  1.2.1+vmware.2-tkg.1         Reconcile succeeded   6m40s   
+# tigera-calico-vks-guest-cluster-auth-service   guest-cluster-auth-service.tanzu.vmware.com   1.4.2+vmware.1-tkg.1         Reconcile succeeded   6m41s   
+# tigera-calico-vks-metrics-server               metrics-server.tanzu.vmware.com               0.7.2+vmware.7-fips-tkg.1    Reconcile succeeded   6m40s   
+# tigera-calico-vks-pinniped                     pinniped.tanzu.vmware.com                     0.39.0+vmware.2-tkg.1        Reconcile succeeded   6m38s   
+# tigera-calico-vks-secretgen-controller         secretgen-controller.tanzu.vmware.com         0.19.1+vmware.2-fips-tkg.1   Reconcile succeeded   6m39s   
+# tigera-calico-vks-vsphere-cpi                  vsphere-cpi.tanzu.vmware.com                  1.33.0+vmware.1-tkg.1        Reconcile succeeded   6m41s   
+# tigera-calico-vks-vsphere-pv-csi               vsphere-pv-csi.tanzu.vmware.com               3.5.0+vmware.1-tkg.1         Reconcile succeeded   6m41s   
+
+# Disable reconciliation process
+kubectl patch packageinstall "$CLUSTER_NAME"-calico \
+-n vmware-system-tkg \
+--type='merge' \
+-p '{"spec":{"paused":true}}'
+
+# Expected output:
+# packageinstall.packaging.carvel.dev/tigera-calico-vks-calico patched
+
+# Verify reconciliation
+kubectl get packageinstall -n vmware-system-tkg
+
+# Expected output:
+# NAME                                           PACKAGE NAME                                  PACKAGE VERSION              DESCRIPTION           AGE   PAUSED
+# tigera-calico-vks-calico                       calico.tanzu.vmware.com                       3.30.0+vmware.2-fips-tkg.1   Reconcile succeeded   12m   true
+# tigera-calico-vks-gateway-api                  gateway-api.tanzu.vmware.com                  1.2.1+vmware.2-tkg.1         Reconcile succeeded   12m   
+# tigera-calico-vks-guest-cluster-auth-service   guest-cluster-auth-service.tanzu.vmware.com   1.4.2+vmware.1-tkg.1         Reconcile succeeded   12m   
+# tigera-calico-vks-metrics-server               metrics-server.tanzu.vmware.com               0.7.2+vmware.7-fips-tkg.1    Reconcile succeeded   12m   
+# tigera-calico-vks-pinniped                     pinniped.tanzu.vmware.com                     0.39.0+vmware.2-tkg.1        Reconcile succeeded   12m   
+# tigera-calico-vks-secretgen-controller         secretgen-controller.tanzu.vmware.com         0.19.1+vmware.2-fips-tkg.1   Reconcile succeeded   12m   
+# tigera-calico-vks-vsphere-cpi                  vsphere-cpi.tanzu.vmware.com                  1.33.0+vmware.1-tkg.1        Reconcile succeeded   12m   
+# tigera-calico-vks-vsphere-pv-csi               vsphere-pv-csi.tanzu.vmware.com               3.5.0+vmware.1-tkg.1         Reconcile succeeded   12m   
+```
+
+### 11. Delete calico-node daemonset
+```shell
+# Check if 'calico-node' daemonset exists
+kubectl get ds calico-node -n kube-system
+
+# Expected output:
+# NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+# calico-node   5         5         5       5            5           kubernetes.io/os=linux   14m
+
+
+# Delete daemonset
+kubectl delete ds calico-node -n kube-system
+
+# Expected output:
+# daemonset.apps "calico-node" deleted from kube-system namespace
+
+
+# Verify daemonset is deleted
+kubectl get ds calico-node -n kube-system
+
+# Expected output:
+# Error from server (NotFound): daemonsets.apps "calico-node" not found
+```
+
+
+### 12. Create VKS namespace
 ```shell
 # Create a namespace on the VKS cluster
 kubectl create namespace $CLUSTER_NAMESPACE_NAME
@@ -189,7 +291,7 @@ kubectl config set-context --current --namespace=$CLUSTER_NAMESPACE_NAME
 kubectl get all
 ```
 
-### 9. (Optional) Create Secret with Docker.io Credentials
+### 13. (Optional) Create Secret with Docker.io Credentials
 May be required if the deployment hits errors about the site hitting image pull limits.
 ```shell
 # Create secret with Docker login credentials in Kubernetes
@@ -203,6 +305,45 @@ kubectl create secret docker-registry regcred \
 # Automatically use credentials for all pods in namespace 
 kubectl patch serviceaccount default \
   -p '{"imagePullSecrets": [{"name": "regcred"}]}'
+```
+
+### 14. Install Calico OSS
+Ref. https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart
+```shell
+# Create operator
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.3/manifests/tigera-operator.yaml
+
+# Expected output:
+# namespace/tigera-operator created
+# serviceaccount/tigera-operator created
+# clusterrole.rbac.authorization.k8s.io/tigera-operator-secrets created
+# clusterrole.rbac.authorization.k8s.io/tigera-operator created
+# clusterrolebinding.rbac.authorization.k8s.io/tigera-operator created
+# rolebinding.rbac.authorization.k8s.io/tigera-operator-secrets created
+# deployment.apps/tigera-operator created
+
+
+# Create resources
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.31.3/manifests/custom-resources.yaml
+
+# Expected output:
+# installation.operator.tigera.io/default created
+# apiserver.operator.tigera.io/default created
+# goldmane.operator.tigera.io/default created
+# whisker.operator.tigera.io/default created
+
+
+# Check tigera status
+# Note: Wait until all set to 'Available' and no items 'Degraded'
+watch kubectl get tigerastatus
+
+# Expected output:
+# NAME        AVAILABLE   PROGRESSING   DEGRADED   SINCE
+# apiserver   True        False         False      99s
+# calico      True        False         False      74s
+# goldmane    True        False         False      99s
+# ippools     True        False         False      119s
+# whisker     True        False         False      104s
 ```
 
 
