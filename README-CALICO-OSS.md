@@ -374,6 +374,10 @@ kubectl delete -f vks.yaml
 
 ### Useful Commands
 ```shell
+# Refresh contexts
+vcf context refresh $SUPERVISOR_CONTEXT:$SUPERVISOR_NAMESPACE_NAME
+vcf context refresh vks:$CLUSTER_NAME
+
 # List all
 kubectl get all
 
