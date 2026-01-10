@@ -2,7 +2,7 @@
 apiVersion: cni.tanzu.vmware.com/v1alpha1
 kind: CalicoConfig
 metadata:
-  name: tigera-vks
+  name: cluster-vks
 spec:
   calico:
     config:
@@ -13,7 +13,7 @@ kind: ClusterBootstrap
 metadata:
   annotations:
     tkg.tanzu.vmware.com/add-missing-fields-from-tkr: v1.33.3---vmware.1-fips-vkr.1
-  name: tigera-vks
+  name: cluster-vks
 spec:
   cni:
     refName: calico.tanzu.vmware.com.3.30.0+vmware.2-fips-tkg.1
@@ -21,12 +21,12 @@ spec:
       providerRef:
         apiGroup: cni.tanzu.vmware.com
         kind: CalicoConfig
-        name: tigera-vks
+        name: cluster-vks
 ---
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-  name: tigera-vks
+  name: cluster-vks
 spec:
   clusterNetwork:
     services:
